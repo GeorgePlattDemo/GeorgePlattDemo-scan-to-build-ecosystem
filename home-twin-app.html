@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homeowner Project Record — Operational Digital Twin</title>
+<meta name="description" content="Owner-held home digital twin. The verticals × actions matrix as a working coordination surface: standardized capture, governed work packets, intelligent routing, outcome preservation.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ============================================================
+   DESIGN TOKENS — matched to the Scan-to-Build deck identity
+   ============================================================ */
+:root{
+  --ink:#1c1917; --ink-soft:#44403c; --ink-faint:#78716c;
+  --paper:#fafaf9; --card:#ffffff; --rule:#e7e5e4; --rule-soft:#f5f5f4;
+  --brand:#001489;            /* platform blue */
+  --brand-soft:#eef1ff;
+  --wood:#92400e; --wood-bg:#fffbeb; --wood-live:#fde68a;
+  --signal:#b91c1c;
+  --ok:#15803d; --ok-bg:#f0fdf4;
+  --warn:#b45309; --warn-bg:#fffbeb;
+  --row-peach:#fde7d2;        /* VERTICALS spine, from the image */
+  --hdr-lav:#c7cdf0;          /* actions header lavender */
+  --radius:8px;
+  --shadow:0 1px 3px rgba(28,25,23,.08), 0 8px 24px rgba(28,25,23,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.45}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ============ Header ============ */
+header{position:sticky;top:0;z-index:60;background:rgba(250,250,249,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--rule)}
+.hdr-in{max-width:1480px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand-cube{width:22px;height:22px;background:var(--brand);border-radius:3px;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;flex:none}
+.brand-name{font-weight:800;letter-spacing:-.02em;color:var(--brand);font-size:15px}
+.brand-sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.gov-badges{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.gov-badge{font-size:10px;font-weight:600;letter-spacing:.04em;padding:4px 9px;border:1px solid var(--rule);border-radius:999px;background:#fff;color:var(--ink-soft);display:inline-flex;align-items:center;gap:5px}
+.gov-badge .dot{width:6px;height:6px;border-radius:99px;background:var(--brand)}
+.hdr-actions{display:flex;gap:8px}
+.btn{border:1px solid var(--rule);background:#fff;color:var(--ink);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;transition:all .12s}
+.btn:hover{border-color:var(--ink-soft)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#001f9c}
+.btn.subtle{border-color:transparent;background:transparent;color:var(--ink-faint)}
+.btn.subtle:hover{color:var(--ink);background:var(--rule-soft)}
+.btn.danger{color:var(--signal);border-color:#fecaca}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 9px;font-size:11px}
+
+/* ============ Layout ============ */
+.shell{max-width:1480px;margin:0 auto;padding:22px 20px 80px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px}
+@media(max-width:1080px){.shell{grid-template-columns:1fr}}
+.page-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+h1{font-size:clamp(22px,3vw,30px);font-weight:900;letter-spacing:-.03em;margin:6px 0 4px;color:var(--ink)}
+h1 .accent{color:var(--brand)}
+.lede{color:var(--ink-soft);max-width:760px;margin:0 0 18px;font-size:13.5px}
+
+/* ============ The Matrix (mirrors the laptop table in the image) ============ */
+.matrix-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.matrix-titlebar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rule);background:#fff}
+.matrix-titlebar .home-ico{font-size:15px}
+.matrix-titlebar .t{font-weight:700;font-size:13px}
+.matrix-titlebar .addr{font-size:11px;color:var(--ink-faint)}
+.matrix-scroll{overflow-x:auto}
+table.matrix{border-collapse:collapse;width:100%;min-width:880px;table-layout:fixed}
+table.matrix th,table.matrix td{border:1px solid var(--rule);vertical-align:top}
+/* Capability header row (the descriptive band across the top of the laptop) */
+th.cap{background:#fff;font-size:10.5px;line-height:1.4;font-weight:600;color:var(--ink-soft);padding:9px 8px;text-align:center}
+th.cap .plus{color:var(--ink-faint);font-weight:500;display:block}
+/* Spine + action header */
+th.spine{background:var(--row-peach);width:34px;padding:6px 4px;font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--ink);text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}
+td.rownum{background:var(--row-peach);width:34px;text-align:center;font-weight:700;font-size:12px;color:var(--ink);padding:10px 0}
+th.actions-h{background:var(--hdr-lav);font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--ink);padding:8px;text-align:left}
+th.fn-h{background:var(--hdr-lav);font-size:11px;font-weight:700;color:var(--ink);padding:8px;text-align:center}
+td.vname{font-weight:700;font-size:12.5px;padding:10px;width:118px;background:#eef1f9;cursor:pointer;transition:background .12s}
+td.vname:hover{background:#dde3f5}
+td.vname.anchor{background:#0b1f6b;color:#fff}
+td.vname.anchor:hover{background:#001489}
+td.vname.proof{background:#3552c7;color:#fff}
+td.vname.proof:hover{background:#2a45b3}
+td.vname.open{background:#f6f7fb;color:var(--ink-faint);font-weight:600;font-style:italic}
+td.vname .vsub{display:block;font-size:9.5px;font-weight:600;opacity:.75;margin-top:2px;letter-spacing:.03em;text-transform:uppercase;font-style:normal}
+/* Cells */
+td.cell{padding:6px;min-height:54px;height:62px;cursor:pointer;transition:background .12s;position:relative;background:#fff}
+td.cell:hover{background:var(--brand-soft)}
+td.cell.wood{background:var(--wood-bg)}
+td.cell.wood:hover{background:#fef3c7}
+td.cell.active-stage{background:#f3f5ff}
+td.cell.active-stage.wood{background:var(--wood-live)}
+td.cell.disabled{cursor:default;background:#fcfcfb}
+td.cell.disabled:hover{background:#fcfcfb}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border-radius:4px;padding:3px 6px;margin:1px 2px;border:1px solid transparent;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.stage-current{background:var(--brand);color:#fff}
+.chip.stage-done{background:var(--ok-bg);color:var(--ok);border-color:#bbf7d0}
+.chip.stage-future{background:var(--rule-soft);color:var(--ink-faint)}
+.chip.count{background:#fff;border-color:var(--rule);color:var(--ink-soft)}
+.cell-live-dot{position:absolute;top:5px;right:7px;width:7px;height:7px;border-radius:99px;background:var(--signal)}
+.cell-empty-hint{font-size:10px;color:var(--ink-faint);padding:3px 4px}
+caption.matrix-cap{caption-side:bottom;text-align:left;font-size:11px;color:var(--ink-faint);padding:9px 14px;border-top:1px solid var(--rule)}
+.matrix-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--ink-soft)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:11px;height:11px;border-radius:3px;border:1px solid var(--rule)}
+
+/* ============ Right rail: orchestration ============ */
+.rail{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel-h{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--rule)}
+.panel-h .t{font-weight:800;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.panel-h .s{font-size:10px;color:var(--ink-faint)}
+.funnel{padding:12px 14px;font-size:11.5px;color:var(--ink-soft)}
+.funnel .f-title{font-weight:800;color:var(--brand);font-size:13px}
+.channel-list{list-style:none;margin:0;padding:6px 8px 10px}
+.channel-list li{display:flex;align-items:center;gap:9px;padding:7px 6px;border-radius:6px}
+.channel-list li:hover{background:var(--rule-soft)}
+.ch-ico{width:26px;height:26px;border-radius:99px;border:1.6px solid;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.ch-name{font-weight:600;font-size:12px;flex:1;min-width:0}
+.ch-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);background:var(--rule-soft);border-radius:5px;padding:2px 7px}
+.eventlog{max-height:340px;overflow-y:auto;padding:6px 0}
+.ev{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:6px 14px;border-bottom:1px solid var(--rule-soft);font-size:11px}
+.ev:last-child{border-bottom:0}
+.ev .ts{font-family:'JetBrains Mono',monospace;color:var(--ink-faint);font-size:10px;padding-top:1px}
+.ev .what b{font-weight:700}
+.ev .what .tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);border-radius:3px;padding:1px 5px;margin-right:5px}
+.empty-note{padding:16px 14px;font-size:11.5px;color:var(--ink-faint)}
+
+/* ============ Drawer (cell workspace) ============ */
+.scrim{position:fixed;inset:0;background:rgba(28,25,23,.45);z-index:80;opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100%);background:var(--paper);z-index:90;transform:translateX(102%);transition:transform .22s ease;box-shadow:-12px 0 40px rgba(28,25,23,.2);display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:#fff;display:flex;align-items:flex-start;gap:12px}
+.drawer-h .crumbs{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+.drawer-h .ttl{font-size:17px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.drawer-h .close{margin-left:auto}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 18px 40px}
+.stage-track{display:flex;gap:4px;margin:0 0 16px;flex-wrap:wrap}
+.stage-pill{font-size:10px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid var(--rule);background:#fff;color:var(--ink-faint);display:inline-flex;align-items:center;gap:5px}
+.stage-pill.done{background:var(--ok-bg);color:var(--ok);border-color:#bbf7d0}
+.stage-pill.current{background:var(--brand);color:#fff;border-color:var(--brand)}
+.section{background:#fff;border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:14px}
+.section-h{padding:10px 14px;border-bottom:1px solid var(--rule);font-weight:800;font-size:12px;letter-spacing:.03em;display:flex;justify-content:space-between;align-items:center}
+.section-b{padding:12px 14px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--rule);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
+.field textarea{min-height:64px;resize:vertical}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:12px}
+.kv dt{color:var(--ink-faint);font-weight:600}
+.kv dd{margin:0;font-weight:500}
+.item-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule-soft);font-size:12.5px}
+.item-row:last-child{border-bottom:0}
+.item-row .grow{flex:1;min-width:0}
+.item-row .meta{font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+.pill{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:2px 8px;display:inline-block}
+.pill.blue{background:var(--brand-soft);color:var(--brand)}
+.pill.green{background:var(--ok-bg);color:var(--ok)}
+.pill.amber{background:var(--warn-bg);color:var(--warn)}
+.pill.gray{background:var(--rule-soft);color:var(--ink-faint)}
+.pill.red{background:#fef2f2;color:var(--signal)}
+.packet-json{background:#101010;color:#d6f5d6;border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;overflow-x:auto;white-space:pre}
+.milestones{list-style:none;margin:0;padding:0}
+.milestones li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:12px}
+.ms-dot{width:12px;height:12px;border-radius:99px;border:2px solid var(--rule);background:#fff;margin-top:2px;flex:none}
+.ms-dot.done{background:var(--ok);border-color:var(--ok)}
+.ms-dot.now{background:#fff;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.note{font-size:11px;color:var(--ink-faint);line-height:1.5}
+.gate{border-left:3px solid var(--brand);background:var(--brand-soft);border-radius:0 6px 6px 0;padding:9px 12px;font-size:11.5px;color:var(--ink-soft);margin:10px 0}
+.gate b{color:var(--brand)}
+.refusal{border-left:3px solid var(--signal);background:#fef2f2;border-radius:0 6px 6px 0;padding:9px 12px;font-size:11.5px;color:#7f1d1d;margin:10px 0}
+.quote-card{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.quote-card.accepted{border-color:var(--ok);background:var(--ok-bg)}
+.quote-card .price{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px}
+.toast-wrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--ink);color:#fff;font-size:12px;font-weight:600;border-radius:999px;padding:8px 18px;box-shadow:var(--shadow);animation:toastIn .2s ease}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+footer{max-width:1480px;margin:0 auto;padding:0 20px 40px;font-size:10.5px;color:var(--ink-faint);line-height:1.6}
+@media(max-width:720px){.gov-badges{display:none}.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-in">
+    <span class="brand-cube" aria-hidden="true">3D</span>
+    <div>
+      <div class="brand-name">homeowner project record</div>
+      <div class="brand-sub">Owner-held digital twin · coordination surface</div>
+    </div>
+    <div class="gov-badges" aria-label="Governance principles">
+      <span class="gov-badge"><span class="dot"></span>Homeowner controlled</span>
+      <span class="gov-badge"><span class="dot"></span>Standardized capture</span>
+      <span class="gov-badge"><span class="dot"></span>Intelligent routing</span>
+      <span class="gov-badge"><span class="dot"></span>Outcome preservation</span>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn" id="btn-export" title="Download the full record as JSON — the owner holds the data">Export record</button>
+      <button class="btn subtle" id="btn-import">Import</button>
+      <input type="file" id="file-import" accept="application/json" style="display:none">
+      <button class="btn subtle" id="btn-reset" title="Reset to seeded demonstration data">Reset demo</button>
+    </div>
+  </div>
+</header>
+
+<main class="shell">
+  <section aria-label="Project record matrix">
+    <div class="page-eyebrow">The orchestration layer that reduces information arbitrage</div>
+    <h1>Every vertical. Every action. <span class="accent">One governed record.</span></h1>
+    <p class="lede">Each row is a home-improvement vertical; each column is one of the five actions every project moves through. Click any cell to work inside it. Every change writes to an append-only archive the homeowner owns — vendors, stores, fabricators, and financial institutions contribute to the record, but no actor replaces the owner as the record holder.</p>
+
+    <div class="matrix-card">
+      <div class="matrix-titlebar">
+        <span class="home-ico" aria-hidden="true">⌂</span>
+        <div>
+          <div class="t">Home Projects</div>
+          <div class="addr" id="home-addr"></div>
+        </div>
+        <div style="margin-left:auto" class="mono" style="font-size:10px"><span id="record-stats" class="addr"></span></div>
+      </div>
+      <div class="matrix-scroll">
+        <table class="matrix" id="matrix-table" aria-label="Verticals by actions matrix">
+          <!-- rendered by JS -->
+        </table>
+      </div>
+      <div class="matrix-foot">
+        <div class="legend">
+          <span><span class="swatch" style="background:#0b1f6b"></span>Anchor vertical — patented capture → fabrication cell</span>
+          <span><span class="swatch" style="background:#3552c7"></span>Worked proof of the twin</span>
+          <span><span class="swatch" style="background:var(--wood-bg)"></span>Live activity in cell</span>
+          <span><span class="swatch" style="background:#f6f7fb"></span>Open slot — filled by demand, not predetermined</span>
+        </div>
+        <button class="btn primary sm" id="btn-new-project">+ New project</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="rail" aria-label="Orchestration">
+    <div class="panel">
+      <div class="panel-h"><span class="t">Orchestration</span><span class="s">routes the work package</span></div>
+      <div class="funnel">
+        <div class="f-title">Work packets in flight: <span id="packets-inflight" class="mono">0</span></div>
+        A resolved cell becomes a <b>governed work packet</b> — versioned spec, constraints, and validation gates — routed to the channel best positioned to fulfill it. Outcomes return to the record.
+      </div>
+      <ul class="channel-list" id="channel-list"><!-- rendered --></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><span class="t">Record archive</span><span class="s">append-only event log</span></div>
+      <div class="eventlog" id="eventlog"><!-- rendered --></div>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  Demonstration build. Architecture: owner-held record · standardized capture · cross-vendor work packets · refusal logic and validation gates · local fulfillment routing. Patents: US 9,720,401 · US 10,768,609. The export file is the canonical record — the owner can take it anywhere.
+</footer>
+
+<!-- Drawer -->
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div class="drawer-h">
+    <div>
+      <div class="crumbs" id="drawer-crumbs">Vertical × Action</div>
+      <div class="ttl" id="drawer-title">—</div>
+    </div>
+    <button class="btn close" id="drawer-close" aria-label="Close workspace">Close ✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+/* =====================================================================
+   HOME TWIN — OPERATIONAL MVP
+   ---------------------------------------------------------------------
+   This single file contains a layered "backend in the browser":
+
+     1. SCHEMA      — the canonical data model (mirrors the Postgres
+                      schema documented in ARCHITECTURE.md)
+     2. DB          — in-memory store + append-only event log
+                      (event-sourced; export/import is the persistence
+                      boundary so the OWNER physically holds the record)
+     3. REPOSITORIES— typed accessors, no UI code touches DB directly
+     4. API         — simulated REST endpoints; the UI calls api.* only,
+                      so swapping in a real server is a transport change
+     5. ORCHESTRATOR— stage state machine, validation gates, refusal
+                      logic, channel routing (the funnel in the image)
+     6. UI          — matrix renderer + cell workspaces (drawer)
+
+   The matrix mirrors the laptop table in the source image exactly:
+   VERTICALS spine (rows 1–7) × Actions (Research, Design/Configure,
+   Quote/Shop, Purchase, Fulfillment), with the capability band on top.
+   ===================================================================== */
+
+'use strict';
+
+/* ---------------- 1. SCHEMA ---------------- */
+const STAGES = ['research','design','quote','purchase','fulfillment'];
+const STAGE_LABEL = {research:'Research', design:'Design / Configure', quote:'Quote / Shop', purchase:'Purchase', fulfillment:'Fulfillment', archived:'Archived'};
+
+// Capability band — the descriptive header across the top of the laptop image
+const CAPABILITIES = [
+  {forStage:'research',    text:'View relevant videos + writings pre-compiled', plus:'+ archive + share'},
+  {forStage:'design',      text:'Industry-accepted, task-specific tools',       plus:'+ archive'},
+  {forStage:'quote',       text:'Completed work packages sent to and returned from vendors', plus:'archive'},
+  {forStage:'purchase',    text:'Financial institutions links',                 plus:'+ account info archive'},
+  {forStage:'fulfillment', text:'Links to stores, vendors, production labor/task sites', plus:'+ archive'}
+];
+
+const VERTICALS = [
+  {id:'woodwork', n:1, name:'Woodwork', kind:'anchor', sub:'Patented capture → fabrication cell'},
+  {id:'windows',  n:2, name:'Windows',  kind:'proof',  sub:'Worked proof of the twin'},
+  {id:'doors',    n:3, name:'Doors',    kind:'planned'},
+  {id:'siding',   n:4, name:'Siding',   kind:'planned'},
+  {id:'roofing',  n:5, name:'Roofing',  kind:'planned'},
+  {id:'open6',    n:6, name:'Open slot',kind:'open'},
+  {id:'open7',    n:7, name:'Open slot',kind:'open'}
+];
+
+// Routing channels — the radial network on the right of the image
+const CHANNELS = [
+  {id:'stores',    name:'Stores / Lumberyards', color:'#166534', ico:'⌂'},
+  {id:'localfab',  name:'Local fabrication',    color:'#5b21b6', ico:'⚙'},
+  {id:'vendors',   name:'Vendors & fab',        color:'#1d4ed8', ico:'▣'},
+  {id:'delivery',  name:'Delivery / Fulfillment',color:'#b91c1c', ico:'▶'},
+  {id:'service',   name:'Tiered service providers',color:'#c2410c', ico:'☷'},
+  {id:'outcomes',  name:'Shared outcomes',      color:'#1e40af', ico:'✓'}
+];
+
+const FULFILLMENT_MILESTONES = ['Packet routed','In production / scheduled','Quality check passed','Delivery / install','Owner verification'];
+
+/* ---------------- 2. DB (event-sourced, owner-exportable) ---------------- */
+const uid = (p)=>p+'_'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const nowISO = ()=>new Date().toISOString();
+
+function blankDB(){
+  return {
+    meta:{schema:'hometwin/v1', owner:'Homeowner', address:'128 Alcove Ln, Greensboro, NC', exportedAt:null},
+    projects:{},          // id -> project
+    research:{},          // id -> research item   (project scoped)
+    packets:{},           // id -> work packet versions
+    quotes:{},            // id -> quote
+    orders:{},            // id -> order
+    fulfillments:{},      // id -> fulfillment
+    outcomes:{},          // id -> archived outcome
+    events:[]             // append-only log (the archive)
+  };
+}
+let DB = blankDB();
+
+function logEvent(type, summary, refs={}){
+  DB.events.unshift({id:uid('ev'), ts:nowISO(), type, summary, refs});
+  if (DB.events.length>400) DB.events.length = 400;
+}
+
+/* ---------------- 3. REPOSITORIES ---------------- */
+const Repo = {
+  projectsByVertical(vid){ return Object.values(DB.projects).filter(p=>p.verticalId===vid && p.status!=='archived'); },
+  archivedByVertical(vid){ return Object.values(DB.projects).filter(p=>p.verticalId===vid && p.status==='archived'); },
+  project(id){ return DB.projects[id]; },
+  researchFor(pid){ return Object.values(DB.research).filter(r=>r.projectId===pid); },
+  packetFor(pid){ const ps=Object.values(DB.packets).filter(k=>k.projectId===pid).sort((a,b)=>b.version-a.version); return ps[0]||null; },
+  packetHistory(pid){ return Object.values(DB.packets).filter(k=>k.projectId===pid).sort((a,b)=>b.version-a.version); },
+  quotesFor(pid){ return Object.values(DB.quotes).filter(q=>q.projectId===pid); },
+  orderFor(pid){ return Object.values(DB.orders).find(o=>o.projectId===pid)||null; },
+  fulfillmentFor(pid){ return Object.values(DB.fulfillments).find(f=>f.projectId===pid)||null; },
+  outcomeFor(pid){ return Object.values(DB.outcomes).find(o=>o.projectId===pid)||null; },
+  inflightCount(){ return Object.values(DB.projects).filter(p=>p.status!=='archived').length; },
+  channelCounts(){
+    const c = Object.fromEntries(CHANNELS.map(ch=>[ch.id,0]));
+    Object.values(DB.fulfillments).forEach(f=>{ if(c[f.channelId]!=null) c[f.channelId]++; });
+    Object.values(DB.quotes).forEach(q=>{ if(q.status!=='accepted' && c[q.channelId]!=null) c[q.channelId]+= 0; });
+    c.outcomes = Object.keys(DB.outcomes).length;
+    return c;
+  }
+};
+
+/* ---------------- 4. API (simulated endpoints; the only surface the UI uses) ---------------- */
+const api = {
+
+  /* POST /api/projects */
+  createProject({verticalId,title,goal}){
+    const v = VERTICALS.find(v=>v.id===verticalId);
+    if(!v) throw new Error('Unknown vertical');
+    if(v.kind==='open') throw new Error('Open slots are filled by demand — name the vertical first.');
+    const p = {id:uid('prj'), verticalId, title:title.trim(), goal:(goal||'').trim(), status:'research', createdAt:nowISO(), updatedAt:nowISO()};
+    DB.projects[p.id]=p;
+    logEvent('project.created', `<b>${esc(p.title)}</b> opened in ${v.name} — record created`, {projectId:p.id});
+    return p;
+  },
+
+  /* POST /api/projects/:id/research */
+  addResearch(pid,{kind,title,url,note}){
+    const r = {id:uid('res'), projectId:pid, kind, title:title.trim(), url:(url||'').trim(), note:(note||'').trim(), addedAt:nowISO(), shared:false};
+    DB.research[r.id]=r;
+    logEvent('research.added', `<b>${esc(r.title)}</b> archived to research`, {projectId:pid});
+    return r;
+  },
+  shareResearch(rid){ const r=DB.research[rid]; if(r){r.shared=true; logEvent('research.shared', `Research item shared from the record`, {projectId:r.projectId});} return r; },
+
+  /* POST /api/projects/:id/packet  — Standardized Capture */
+  savePacket(pid, spec){
+    const prev = Repo.packetFor(pid);
+    const validation = Orchestrator.validateSpec(spec);
+    const k = {id:uid('pkt'), projectId:pid, version:(prev?prev.version+1:1), spec, validation, createdAt:nowISO()};
+    DB.packets[k.id]=k;
+    const p = Repo.project(pid);
+    logEvent(validation.ok?'packet.versioned':'packet.refused',
+      validation.ok ? `Work packet <b>v${k.version}</b> validated for ${esc(p.title)}`
+                    : `Packet v${k.version} for ${esc(p.title)} <b>refused</b>: ${esc(validation.reasons[0])}`,
+      {projectId:pid, packetId:k.id});
+    return k;
+  },
+
+  /* POST /api/projects/:id/quotes/request — Intelligent Routing (outbound) */
+  requestQuotes(pid){
+    const k = Repo.packetFor(pid);
+    if(!k || !k.validation.ok) throw new Error('A validated work packet is required before quoting.');
+    const made = Orchestrator.generateQuotes(pid, k);
+    made.forEach(q=>{ DB.quotes[q.id]=q; });
+    const p = Repo.project(pid);
+    logEvent('quotes.returned', `Packet v${k.version} routed — <b>${made.length} quotes</b> returned for ${esc(p.title)}`, {projectId:pid});
+    return made;
+  },
+
+  /* POST /api/quotes/:id/accept */
+  acceptQuote(qid){
+    const q = DB.quotes[qid]; if(!q) throw new Error('Quote not found');
+    Repo.quotesFor(q.projectId).forEach(x=>{ x.status = (x.id===qid)?'accepted':'declined'; });
+    logEvent('quote.accepted', `Quote accepted — <b>${money(q.price)}</b> via ${channelName(q.channelId)}`, {projectId:q.projectId});
+    return q;
+  },
+
+  /* POST /api/projects/:id/order — Purchase with escrow */
+  placeOrder(pid){
+    const q = Repo.quotesFor(pid).find(x=>x.status==='accepted');
+    if(!q) throw new Error('Accept a quote before purchasing.');
+    const o = {id:uid('ord'), projectId:pid, quoteId:q.id, channelId:q.channelId, amount:q.price, escrow:'held', placedAt:nowISO()};
+    DB.orders[o.id]=o;
+    logEvent('order.placed', `Order placed — <b>${money(o.amount)}</b> held in escrow until fulfillment closes`, {projectId:pid});
+    return o;
+  },
+
+  /* POST /api/orders/:id/dispatch — route into fulfillment */
+  dispatch(pid){
+    const o = Repo.orderFor(pid); if(!o) throw new Error('No order to dispatch.');
+    const f = {id:uid('ful'), projectId:pid, orderId:o.id, channelId:o.channelId, milestoneIndex:0, startedAt:nowISO(), log:[{at:nowISO(), what:FULFILLMENT_MILESTONES[0]}]};
+    DB.fulfillments[f.id]=f;
+    logEvent('fulfillment.routed', `Work packet dispatched to <b>${channelName(o.channelId)}</b>`, {projectId:pid});
+    return f;
+  },
+
+  /* POST /api/fulfillments/:id/advance */
+  advanceMilestone(pid){
+    const f = Repo.fulfillmentFor(pid); if(!f) throw new Error('Not dispatched yet.');
+    if(f.milestoneIndex < FULFILLMENT_MILESTONES.length-1){
+      f.milestoneIndex++;
+      f.log.push({at:nowISO(), what:FULFILLMENT_MILESTONES[f.milestoneIndex]});
+      logEvent('fulfillment.milestone', `${esc(FULFILLMENT_MILESTONES[f.milestoneIndex])} — ${esc(Repo.project(pid).title)}`, {projectId:pid});
+    }
+    return f;
+  },
+
+  /* POST /api/projects/:id/close — Outcome Preservation */
+  closeProject(pid,{warrantyYears,serviceNote}){
+    const p = Repo.project(pid); const o = Repo.orderFor(pid); const f = Repo.fulfillmentFor(pid);
+    if(!f || f.milestoneIndex < FULFILLMENT_MILESTONES.length-1) throw new Error('Owner verification milestone must be reached before closing.');
+    if(o) o.escrow='released';
+    const k = Repo.packetFor(pid);
+    const out = {id:uid('out'), projectId:pid, archivedAt:nowISO(), warrantyYears:warrantyYears||0, serviceNote:serviceNote||'', finalPacketVersion:k?k.version:null, amount:o?o.amount:null, channelId:f.channelId};
+    DB.outcomes[out.id]=out;
+    p.status='archived'; p.updatedAt=nowISO();
+    logEvent('outcome.preserved', `<b>${esc(p.title)}</b> closed — escrow released, outcome archived to the record`, {projectId:pid});
+    return out;
+  },
+
+  /* POST /api/projects/:id/advance — stage state machine */
+  advanceStage(pid){
+    const p = Repo.project(pid);
+    const gate = Orchestrator.gateFor(p);
+    if(!gate.ok) throw new Error(gate.reason);
+    const i = STAGES.indexOf(p.status);
+    if(i < STAGES.length-1){
+      p.status = STAGES[i+1]; p.updatedAt=nowISO();
+      logEvent('stage.advanced', `${esc(p.title)} → <b>${STAGE_LABEL[p.status]}</b>`, {projectId:pid});
+    }
+    return p;
+  },
+
+  /* GET /api/export — the owner holds the record */
+  exportRecord(){ DB.meta.exportedAt = nowISO(); return JSON.stringify(DB,null,2); },
+  importRecord(json){
+    const next = JSON.parse(json);
+    if(next?.meta?.schema!=='hometwin/v1') throw new Error('Not a hometwin/v1 record.');
+    DB = next; logEvent('record.imported','Owner record imported — owner remains the record holder',{});
+  }
+};
+
+/* ---------------- 5. ORCHESTRATOR — gates, refusal logic, routing ---------------- */
+const Orchestrator = {
+  // Validation gates: the safety envelope from the briefs. Bounded, explicit, named early.
+  validateSpec(spec){
+    const reasons=[];
+    const w=+spec.widthIn, h=+spec.heightIn, d=+spec.depthIn;
+    if(!spec.summary || spec.summary.trim().length<6) reasons.push('Spec summary is too thin to route — capture intent in a sentence.');
+    if(!(w>0&&h>0&&d>0)) reasons.push('All three dimensions are required (standardized capture).');
+    if(w>96||h>120) reasons.push('Exceeds the bounded fabrication envelope (max 96″ W × 120″ H) — route to a special-order merchant instead.');
+    if(d>30) reasons.push('Depth beyond 30″ exceeds sheet-stock capability — refused before a tool touches wood.');
+    if(spec.material==='unverified') reasons.push('Material truth unconfirmed — operator confirmation required at the Confirm step.');
+    return {ok:reasons.length===0, reasons, checkedAt:nowISO()};
+  },
+
+  // Stage gates: what must be true in the record before a cell hands off to the next
+  gateFor(p){
+    switch(p.status){
+      case 'research':
+        return Repo.researchFor(p.id).length>0
+          ? {ok:true} : {ok:false, reason:'Archive at least one research item before configuring — the record is the memory.'};
+      case 'design': {
+        const k = Repo.packetFor(p.id);
+        if(!k) return {ok:false, reason:'Create a work packet first — capture before quote.'};
+        if(!k.validation.ok) return {ok:false, reason:'The current packet was refused by the validation gate. Revise the spec.'};
+        return {ok:true};
+      }
+      case 'quote':
+        return Repo.quotesFor(p.id).some(q=>q.status==='accepted')
+          ? {ok:true} : {ok:false, reason:'Accept a returned quote before purchase.'};
+      case 'purchase':
+        return Repo.orderFor(p.id)
+          ? {ok:true} : {ok:false, reason:'Place the order (escrow) before fulfillment.'};
+      default:
+        return {ok:false, reason:'Fulfillment closes by owner verification, not stage advance.'};
+    }
+  },
+
+  // Intelligent routing: deterministic, explainable quote generation per channel.
+  generateQuotes(pid, packet){
+    const base = 180 + (+packet.spec.widthIn * +packet.spec.heightIn * Math.max(1,+packet.spec.depthIn))/110;
+    const matMult = {pine:1, plywood_cabinet:1.45, hardwood:2.1, vendor_supplied:1.7}[packet.spec.material]||1.2;
+    const mk=(channelId,mult,days,note)=>({id:uid('qte'),projectId:pid,packetVersion:packet.version,channelId,
+      price:Math.round(base*matMult*mult), leadDays:days, note, status:'returned', returnedAt:nowISO()});
+    return [
+      mk('stores',   1.00, 4,  'In-store production cell — packet runs on the tandem machine; pickup at staging.'),
+      mk('localfab', 1.18, 7,  'Local fabrication shop — cell steward certified on the governed packet.'),
+      mk('vendors',  1.42, 12, 'Vendor network — includes special-order components beyond the bounded cell.')
+    ];
+  }
+};
+
+/* ---------------- helpers ---------------- */
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '$'+Number(n).toLocaleString();
+const channelName = id => (CHANNELS.find(c=>c.id===id)||{}).name || id;
+const fmtTs = iso => { const d=new Date(iso); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); };
+
+function toast(msg, isErr){
+  const t=document.createElement('div'); t.className='toast'; if(isErr) t.style.background='var(--signal)';
+  t.textContent=msg; document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>t.remove(), 2600);
+}
+function tryRun(fn){ try{ fn(); renderAll(); }catch(e){ toast(e.message,true); } }
+
+/* ---------------- SEED DATA — the worked examples from the briefs ---------------- */
+function seed(){
+  DB = blankDB();
+  // Woodwork anchor: Sarah's alcove, mid-fulfillment
+  const p1 = api.createProject({verticalId:'woodwork', title:'Alcove built-in (Sarah)', goal:'Built-in shelving fitted to the living-room alcove — arrives already fitted, no tape measure.'});
+  api.addResearch(p1.id,{kind:'video', title:'Built-in alcove joinery walkthrough', url:'', note:'Pre-compiled by the record for this vertical.'});
+  api.addResearch(p1.id,{kind:'writing', title:'Wood movement & species selection for interior built-ins', url:'', note:'Materials-confirmation background.'});
+  api.advanceStage(p1.id);
+  api.savePacket(p1.id,{summary:'Alcove built-in, three fixed shelves, scribed sides, painted finish.', widthIn:46.25, heightIn:88, depthIn:11.5, material:'plywood_cabinet', capture:'3D scan — alcove #A-128 (point cloud ref)', finish:'Painted, white'});
+  api.advanceStage(p1.id);
+  api.requestQuotes(p1.id);
+  api.acceptQuote(Repo.quotesFor(p1.id)[0].id);
+  api.advanceStage(p1.id);
+  api.placeOrder(p1.id);
+  api.advanceStage(p1.id);
+  api.dispatch(p1.id);
+  api.advanceMilestone(p1.id); api.advanceMilestone(p1.id);
+
+  // Windows: worked proof of the twin, at quote stage
+  const p2 = api.createProject({verticalId:'windows', title:'Bay window replacement', goal:'Replace failing bay unit; preserve warranty + financing trail in the record.'});
+  api.addResearch(p2.id,{kind:'writing', title:'U-factor & SHGC for NC climate zone 4', url:'', note:'Energy spec baseline.'});
+  api.addResearch(p2.id,{kind:'video', title:'Bay window install sequence', url:'', note:''});
+  api.advanceStage(p2.id);
+  api.savePacket(p2.id,{summary:'Bay window, three-lite, rough opening verified by capture; vendor-supplied units, install routed to tiered provider.', widthIn:84, heightIn:62, depthIn:18, material:'vendor_supplied', capture:'Opening capture — laser, verified', finish:'Clad exterior, white'});
+  api.advanceStage(p2.id);
+  api.requestQuotes(p2.id);
+
+  // Doors: fresh research-stage project
+  const p3 = api.createProject({verticalId:'doors', title:'Pre-hung door refinish', goal:'Change finish on stock louvered door — prefinishing station use case.'});
+  api.addResearch(p3.id,{kind:'writing', title:'Spray finish vs. brush on louvered doors', url:'', note:'From the patent: many small surfaces, meticulous detail.'});
+
+  logEvent('record.seeded','Demonstration record seeded — Wood anchor in fulfillment, Windows twin proof at quote',{});
+}
+
+/* ---------------- 6. UI — matrix ---------------- */
+const elMatrix = document.getElementById('matrix-table');
+
+function stageOfCellChip(p, stage){
+  const order = STAGES.indexOf(stage), cur = STAGES.indexOf(p.status);
+  if (p.status==='archived') return 'done';
+  if (order<cur) return 'done';
+  if (order===cur) return 'current';
+  return 'future';
+}
+
+function renderMatrix(){
+  let html='';
+  // Capability band
+  html += '<tr>';
+  html += `<th class="cap" style="background:var(--row-peach);border-bottom-color:var(--row-peach)" rowspan="2"><span class="mono" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:800;letter-spacing:.3em">VERTICALS</span></th>`;
+  html += `<th class="cap" style="background:#fff"></th>`;
+  CAPABILITIES.forEach(c=>{ html += `<th class="cap">${esc(c.text)}<span class="plus">${esc(c.plus)}</span></th>`; });
+  html += '</tr>';
+  // Action header row
+  html += '<tr>';
+  html += `<th class="actions-h">Actions</th>`;
+  STAGES.forEach(s=>{ html += `<th class="fn-h">${STAGE_LABEL[s]}</th>`; });
+  html += '</tr>';
+
+  VERTICALS.forEach(v=>{
+    const projects = Repo.projectsByVertical(v.id);
+    const archived = Repo.archivedByVertical(v.id);
+    html += '<tr>';
+    html += `<td class="rownum" aria-hidden="true">${v.n}</td>`;
+    const cls = v.kind==='anchor'?'anchor':v.kind==='proof'?'proof':v.kind==='open'?'open':'';
+    html += `<td class="vname ${cls}" data-vertical="${v.id}" tabindex="0" role="button" aria-label="${esc(v.name)} — vertical overview">${esc(v.name)}${v.sub?`<span class="vsub">${esc(v.sub)}</span>`:''}${archived.length?`<span class="vsub">${archived.length} archived outcome${archived.length>1?'s':''}</span>`:''}</td>`;
+    STAGES.forEach(stage=>{
+      const isWood = v.id==='woodwork';
+      if(v.kind==='open'){
+        html += `<td class="cell disabled" aria-label="Open slot — filled by demand"><span class="cell-empty-hint">—</span></td>`;
+        return;
+      }
+      const live = projects.some(p=>p.status===stage);
+      let inner='';
+      projects.forEach(p=>{
+        const st = stageOfCellChip(p,stage);
+        if(st==='current') inner += `<span class="chip stage-current" title="${esc(p.title)} — current stage">${esc(p.title.length>22?p.title.slice(0,21)+'…':p.title)}</span>`;
+        else if(st==='done') inner += `<span class="chip stage-done" title="${esc(p.title)} — completed this step">✓</span>`;
+      });
+      if(!inner && projects.length===0 && stage==='research') inner = `<span class="cell-empty-hint">Start here →</span>`;
+      html += `<td class="cell ${isWood?'wood':''} ${live?'active-stage':''}" data-vertical="${v.id}" data-stage="${stage}" tabindex="0" role="button" aria-label="${esc(v.name)} × ${STAGE_LABEL[stage]}">${live?'<span class="cell-live-dot" aria-hidden="true"></span>':''}${inner}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += `<caption class="matrix-cap">The grid is the architecture. The wood row is the existence proof — the same packet structure, archive model, and store-fulfillment loop generalizes to every other row. Cells with a red dot have live activity at that step.</caption>`;
+  elMatrix.innerHTML = html;
+
+  // wire cells
+  elMatrix.querySelectorAll('td.cell:not(.disabled)').forEach(td=>{
+    const open = ()=> openCell(td.dataset.vertical, td.dataset.stage);
+    td.addEventListener('click', open);
+    td.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} });
+  });
+  elMatrix.querySelectorAll('td.vname[data-vertical]').forEach(td=>{
+    const open = ()=> openCell(td.dataset.vertical, null);
+    td.addEventListener('click', open);
+    td.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open();} });
+  });
+}
+
+/* ---------------- UI — right rail ---------------- */
+function renderRail(){
+  document.getElementById('packets-inflight').textContent = Repo.inflightCount();
+  const counts = Repo.channelCounts();
+  document.getElementById('channel-list').innerHTML = CHANNELS.map(ch=>`
+    <li><span class="ch-ico" style="border-color:${ch.color};color:${ch.color}" aria-hidden="true">${ch.ico}</span>
+        <span class="ch-name">${esc(ch.name)}</span>
+        <span class="ch-count">${counts[ch.id]||0}</span></li>`).join('');
+  const log = document.getElementById('eventlog');
+  log.innerHTML = DB.events.length ? DB.events.slice(0,60).map(ev=>`
+    <div class="ev"><span class="ts">${fmtTs(ev.ts)}</span>
+      <span class="what"><span class="tag">${esc(ev.type.split('.')[0])}</span>${ev.summary}</span></div>`).join('')
+    : `<div class="empty-note">No events yet. Every action you take writes here — this log is the owner's archive.</div>`;
+  document.getElementById('home-addr').textContent = DB.meta.address;
+  document.getElementById('record-stats').textContent =
+    `${Object.keys(DB.projects).length} projects · ${Object.keys(DB.packets).length} packet versions · ${DB.events.length} events`;
+}
+
+/* ---------------- UI — drawer workspaces ---------------- */
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+let drawerCtx = null; // {verticalId, stage, projectId?}
+
+function openCell(verticalId, stage){
+  drawerCtx = {verticalId, stage};
+  drawer.classList.add('open'); scrim.classList.add('open');
+  renderDrawer();
+  drawer.querySelector('.drawer-body').scrollTop=0;
+}
+function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove('open'); drawerCtx=null; }
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+
+function stageTrack(p){
+  return `<div class="stage-track" role="list" aria-label="Project stages">` + STAGES.map(s=>{
+    const st = stageOfCellChip(p,s);
+    return `<span class="stage-pill ${st==='done'?'done':st==='current'?'current':''}" role="listitem">${st==='done'?'✓ ':''}${STAGE_LABEL[s]}</span>`;
+  }).join('') + (p.status==='archived'?`<span class="stage-pill done">✓ Archived</span>`:'') + `</div>`;
+}
+
+function renderDrawer(){
+  if(!drawerCtx) return;
+  const v = VERTICALS.find(x=>x.id===drawerCtx.verticalId);
+  const stage = drawerCtx.stage;
+  document.getElementById('drawer-crumbs').textContent = stage ? `${v.name} × ${STAGE_LABEL[stage]}` : `${v.name} — vertical`;
+  const body = document.getElementById('drawer-body');
+
+  const projects = Repo.projectsByVertical(v.id);
+  const archived = Repo.archivedByVertical(v.id);
+
+  // Vertical overview (clicked the row name) or no stage
+  if(!stage){
+    document.getElementById('drawer-title').textContent = v.name;
+    body.innerHTML = `
+      ${v.kind==='anchor'?`<div class="gate"><b>Anchor vertical.</b> The patented capture → fabrication path (US 9,720,401 · US 10,768,609): scan → define → confirm → fabricate → label & release, executed inside a bounded production cell with an operator supplying judgment at every gate.</div>`:''}
+      ${v.kind==='proof'?`<div class="gate"><b>Worked proof of the twin.</b> A harder, cross-domain vertical — cost, warranties, financing, installation risk — demonstrating the governed record and routing end-to-end rather than the fabrication path.</div>`:''}
+      <div class="section"><div class="section-h">Active projects</div><div class="section-b">
+        ${projects.length? projects.map(p=>`
+          <div class="item-row"><div class="grow"><b>${esc(p.title)}</b><div class="meta">${esc(p.goal)}</div></div>
+          <span class="pill blue">${STAGE_LABEL[p.status]}</span>
+          <button class="btn sm" data-open-project="${p.id}">Open</button></div>`).join('')
+        : `<div class="note">No active projects in this vertical. Each project moves left-to-right through the five actions; the record carries everything forward.</div>`}
+        <div style="margin-top:10px"><button class="btn primary sm" data-new-in="${v.id}">+ New ${esc(v.name)} project</button></div>
+      </div></div>
+      ${archived.length?`<div class="section"><div class="section-h">Archived outcomes <span class="pill green">${archived.length}</span></div><div class="section-b">
+        ${archived.map(p=>{ const o=Repo.outcomeFor(p.id); return `<div class="item-row"><div class="grow"><b>${esc(p.title)}</b><div class="meta">Closed ${new Date(o.archivedAt).toLocaleDateString()} · ${o.warrantyYears} yr warranty · ${money(o.amount||0)} via ${esc(channelName(o.channelId))}</div></div><span class="pill green">Preserved</span></div>`;}).join('')}
+        <div class="note" style="margin-top:8px">Each completed project improves the next one — captures, specs, vendors, and warranties stay queryable in the owner's record.</div>
+      </div></div>`:''}`;
+    wireDrawer(body); return;
+  }
+
+  // Stage workspace: pick (or create) the relevant project
+  const inStage = projects.filter(p=>p.status===stage);
+  const focus = inStage[0] || projects[0] || null;
+
+  if(!focus){
+    document.getElementById('drawer-title').textContent = `${v.name} × ${STAGE_LABEL[stage]}`;
+    body.innerHTML = `
+      <div class="section"><div class="section-h">No project yet</div><div class="section-b">
+        <p class="note" style="font-size:12.5px">Projects enter the matrix at <b>Research</b> and carry their record across each column. Start one to activate this row.</p>
+        <div class="field"><label for="np-title">Project title</label><input id="np-title" placeholder="e.g. ${v.id==='roofing'?'Architectural shingle replacement':'New '+v.name.toLowerCase()+' project'}"></div>
+        <div class="field"><label for="np-goal">What outcome do you want?</label><textarea id="np-goal" placeholder="One or two sentences. This becomes the spine of the work packet."></textarea></div>
+        <button class="btn primary" data-create-in="${v.id}">Create project</button>
+      </div></div>`;
+    wireDrawer(body); return;
+  }
+
+  document.getElementById('drawer-title').textContent = focus.title;
+  let html = stageTrack(focus);
+  if(projects.length>1){
+    html += `<div class="field"><label for="proj-switch">Project in this vertical</label><select id="proj-switch">${projects.map(p=>`<option value="${p.id}" ${p.id===focus.id?'selected':''}>${esc(p.title)} — ${STAGE_LABEL[p.status]}</option>`).join('')}</select></div>`;
+  }
+  html += renderStageWorkspace(focus, stage, v);
+  body.innerHTML = html;
+  wireDrawer(body, focus);
+}
+
+function renderStageWorkspace(p, stage, v){
+  const cur = STAGES.indexOf(p.status), here = STAGES.indexOf(stage);
+  const locked = here>cur && p.status!=='archived';
+  const past = here<cur || p.status==='archived';
+  let html='';
+  if(locked) html += `<div class="gate"><b>Gated.</b> This step opens when <b>${STAGE_LABEL[p.status]}</b> completes its handoff. Gates keep the packet honest — nothing routes downstream unresolved.</div>`;
+
+  switch(stage){
+    case 'research': {
+      const items = Repo.researchFor(p.id);
+      html += `<div class="section"><div class="section-h">Pre-compiled research archive <span class="pill blue">${items.length}</span></div><div class="section-b">
+        ${items.length? items.map(r=>`
+          <div class="item-row"><span class="pill ${r.kind==='video'?'amber':'gray'}">${esc(r.kind)}</span>
+            <div class="grow"><b>${esc(r.title)}</b>${r.note?`<div class="meta">${esc(r.note)}</div>`:''}</div>
+            ${r.shared?`<span class="pill green">Shared</span>`:`<button class="btn sm" data-share="${r.id}">Share</button>`}
+          </div>`).join('') : `<div class="note">Nothing archived yet. Videos and writings land here pre-compiled per vertical; anything you add is preserved and shareable.</div>`}
+      </div></div>`;
+      if(!past){
+        html += `<div class="section"><div class="section-h">Archive an item</div><div class="section-b">
+          <div class="field"><label for="r-kind">Type</label><select id="r-kind"><option value="video">Video</option><option value="writing">Writing</option><option value="note">Owner note</option></select></div>
+          <div class="field"><label for="r-title">Title</label><input id="r-title" placeholder="What is it?"></div>
+          <div class="field"><label for="r-note">Note (optional)</label><input id="r-note" placeholder="Why it matters to this project"></div>
+          <button class="btn primary sm" data-add-research="${p.id}">Archive to record</button>
+        </div></div>`;
+        html += advanceBlock(p, 'Hand off to Design / Configure');
+      }
+      break;
+    }
+    case 'design': {
+      const k = Repo.packetFor(p.id), hist = Repo.packetHistory(p.id);
+      if(v.id==='woodwork') html += `<div class="gate"><b>Patented capture → fabrication cell.</b> This is the anchor path: the capture resolves the design <i>before</i> cutting, so waste is refused at the source and the packet that leaves this cell is fabricable as-is.</div>`;
+      if(k && !k.validation.ok) html += `<div class="refusal"><b>Refusal logic fired (v${k.version}).</b><br>${k.validation.reasons.map(esc).join('<br>')}</div>`;
+      html += `<div class="section"><div class="section-h">Work packet — standardized capture ${k?`<span class="pill ${k.validation.ok?'green':'red'}">v${k.version} ${k.validation.ok?'validated':'refused'}</span>`:'<span class="pill gray">none</span>'}</div><div class="section-b">
+        <div class="field"><label for="s-summary">Spec summary</label><input id="s-summary" value="${esc(k?.spec.summary||'')}" placeholder="One sentence the fabricator can act on"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="field"><label for="s-w">Width (in)</label><input id="s-w" type="number" step="0.25" value="${esc(k?.spec.widthIn||'')}"></div>
+          <div class="field"><label for="s-h">Height (in)</label><input id="s-h" type="number" step="0.25" value="${esc(k?.spec.heightIn||'')}"></div>
+          <div class="field"><label for="s-d">Depth (in)</label><input id="s-d" type="number" step="0.25" value="${esc(k?.spec.depthIn||'')}"></div>
+        </div>
+        <div class="field"><label for="s-mat">Material (confirm step — sensing material truth)</label>
+          <select id="s-mat">
+            ${[['pine','Pine — dimensional stock'],['plywood_cabinet','Cabinet-grade plywood — sheet'],['hardwood','Hardwood — premium'],['vendor_supplied','Vendor-supplied unit'],['unverified','Unverified (will be refused)']]
+              .map(([val,lab])=>`<option value="${val}" ${k?.spec.material===val?'selected':''}>${lab}</option>`).join('')}
+          </select></div>
+        <div class="field"><label for="s-cap">Capture reference</label><input id="s-cap" value="${esc(k?.spec.capture||'')}" placeholder="Scan / measurement source"></div>
+        ${!past?`<button class="btn primary sm" data-save-packet="${p.id}">Validate & version packet</button>`:''}
+      </div></div>`;
+      if(k) html += `<div class="section"><div class="section-h">Packet v${k.version} as routed <span class="pill gray">${hist.length} version${hist.length>1?'s':''}</span></div><div class="section-b"><div class="packet-json">${esc(JSON.stringify({packet:k.id, project:p.title, version:k.version, spec:k.spec, validation:{ok:k.validation.ok}},null,2))}</div><div class="note" style="margin-top:8px">This JSON is what crosses vendor boundaries — the same governed shape every channel reads. Cross-vendor by design.</div></div></div>`;
+      if(!past) html += advanceBlock(p, 'Send packet to Quote / Shop');
+      break;
+    }
+    case 'quote': {
+      const quotes = Repo.quotesFor(p.id), k = Repo.packetFor(p.id);
+      html += `<div class="section"><div class="section-h">Returned quotes <span class="pill blue">${quotes.length}</span></div><div class="section-b">
+        ${quotes.length? quotes.map(q=>`
+          <div class="quote-card ${q.status==='accepted'?'accepted':''}">
+            <span class="ch-ico" style="border-color:${(CHANNELS.find(c=>c.id===q.channelId)||{}).color};color:${(CHANNELS.find(c=>c.id===q.channelId)||{}).color}">${(CHANNELS.find(c=>c.id===q.channelId)||{}).ico||'•'}</span>
+            <div class="grow" style="flex:1"><b>${esc(channelName(q.channelId))}</b><div class="meta">${esc(q.note)} · lead ${q.leadDays} days · packet v${q.packetVersion}</div></div>
+            <span class="price">${money(q.price)}</span>
+            ${q.status==='accepted'?'<span class="pill green">Accepted</span>':q.status==='declined'?'<span class="pill gray">Declined</span>':(!past?`<button class="btn sm" data-accept="${q.id}">Accept</button>`:'')}
+          </div>`).join('')
+        : `<div class="note">No quotes yet. The orchestration layer routes the validated packet (v${k?k.version:'—'}) to every eligible channel and returns comparable answers — same packet, same shape, no information arbitrage.</div>
+           ${!past?`<button class="btn primary sm" style="margin-top:8px" data-request-quotes="${p.id}">Route packet for quotes</button>`:''}`}
+      </div></div>`;
+      if(!past && quotes.length) html += advanceBlock(p, 'Proceed to Purchase');
+      break;
+    }
+    case 'purchase': {
+      const o = Repo.orderFor(p.id), q = Repo.quotesFor(p.id).find(x=>x.status==='accepted');
+      html += `<div class="section"><div class="section-h">Order & escrow ${o?`<span class="pill ${o.escrow==='held'?'amber':'green'}">escrow ${o.escrow}</span>`:''}</div><div class="section-b">
+        ${o? `<dl class="kv">
+            <dt>Order</dt><dd class="mono">${esc(o.id)}</dd>
+            <dt>Amount</dt><dd>${money(o.amount)}</dd>
+            <dt>Channel</dt><dd>${esc(channelName(o.channelId))}</dd>
+            <dt>Placed</dt><dd>${new Date(o.placedAt).toLocaleString()}</dd>
+            <dt>Escrow</dt><dd>${o.escrow==='held'?'Held until the fulfillment step closes by owner verification':'Released on verified completion'}</dd>
+          </dl><div class="note" style="margin-top:8px">Financial-institution links and account references archive here; the transaction is part of the project history, not a vendor's CRM.</div>`
+        : q? `<p class="note" style="font-size:12.5px">Accepted quote: <b>${money(q.price)}</b> via ${esc(channelName(q.channelId))}. Placing the order holds payment in escrow until fulfillment closes — the worker-protection and owner-protection posture from the transfer brief.</p>
+              ${!past?`<button class="btn primary sm" data-place-order="${p.id}">Place order (escrow)</button>`:''}`
+        : `<div class="note">No accepted quote. Return to Quote / Shop.</div>`}
+      </div></div>`;
+      if(!past && o) html += advanceBlock(p, 'Release packet to Fulfillment');
+      break;
+    }
+    case 'fulfillment': {
+      const f = Repo.fulfillmentFor(p.id), out = Repo.outcomeFor(p.id);
+      html += `<div class="section"><div class="section-h">Routing & milestones ${f?`<span class="pill blue">${esc(channelName(f.channelId))}</span>`:''}</div><div class="section-b">
+        ${f? `<ul class="milestones">${FULFILLMENT_MILESTONES.map((m,i)=>`
+            <li><span class="ms-dot ${i<f.milestoneIndex?'done':i===f.milestoneIndex?'now':''}"></span>
+                <div><b>${esc(m)}</b>${f.log[i]?`<div class="meta" style="font-size:10.5px;color:var(--ink-faint)">${new Date(f.log[i].at).toLocaleString()}</div>`:''}</div></li>`).join('')}</ul>
+            ${p.status!=='archived' && f.milestoneIndex<FULFILLMENT_MILESTONES.length-1?`<button class="btn primary sm" style="margin-top:8px" data-advance-ms="${p.id}">Mark next milestone</button>`:''}`
+        : p.status==='fulfillment' ? `<p class="note" style="font-size:12.5px">The order is paid and the packet is ready. Dispatch routes it through the orchestration layer to <b>${esc(channelName(Repo.orderFor(p.id)?.channelId||''))}</b> — labels, instructions, and the staging handoff travel with it.</p>
+            <button class="btn primary sm" data-dispatch="${p.id}">Dispatch work packet</button>`
+        : `<div class="note">Not yet released to fulfillment.</div>`}
+      </div></div>`;
+      if(f && f.milestoneIndex===FULFILLMENT_MILESTONES.length-1 && p.status!=='archived'){
+        html += `<div class="section"><div class="section-h">Close & preserve outcome</div><div class="section-b">
+          <div class="field"><label for="c-warranty">Warranty (years)</label><input id="c-warranty" type="number" min="0" value="5"></div>
+          <div class="field"><label for="c-note">Service record note</label><input id="c-note" placeholder="e.g. Installed by tiered provider; finish batch #, touch-up paint stored in garage"></div>
+          <button class="btn primary sm" data-close="${p.id}">Verify, release escrow & archive</button>
+          <div class="note" style="margin-top:8px">Closing writes the outcome — warranty, service record, final packet version, channel — back to the record. The completed project improves the next one.</div>
+        </div></div>`;
+      }
+      if(out){
+        html += `<div class="section"><div class="section-h">Preserved outcome <span class="pill green">archived</span></div><div class="section-b">
+          <dl class="kv"><dt>Closed</dt><dd>${new Date(out.archivedAt).toLocaleString()}</dd>
+          <dt>Warranty</dt><dd>${out.warrantyYears} years</dd>
+          <dt>Final packet</dt><dd>v${out.finalPacketVersion}</dd>
+          <dt>Channel</dt><dd>${esc(channelName(out.channelId))}</dd>
+          ${out.serviceNote?`<dt>Service note</dt><dd>${esc(out.serviceNote)}</dd>`:''}</dl>
+        </div></div>`;
+      }
+      break;
+    }
+  }
+  return html;
+}
+
+function advanceBlock(p, label){
+  const gate = Orchestrator.gateFor(p);
+  return `<div class="section"><div class="section-h">Handoff</div><div class="section-b">
+    ${gate.ok?`<div class="note" style="margin-bottom:8px">Gate satisfied — the record carries everything forward.</div>`:`<div class="gate" style="margin-top:0"><b>Gate:</b> ${esc(gate.reason)}</div>`}
+    <button class="btn primary" data-advance="${p.id}" ${gate.ok?'':'disabled'}>${esc(label)} →</button>
+  </div></div>`;
+}
+
+/* drawer event wiring (delegation per render) */
+function wireDrawer(body, focus){
+  body.querySelectorAll('[data-open-project]').forEach(b=>b.addEventListener('click',()=>{ const p=Repo.project(b.dataset.openProject); drawerCtx={verticalId:p.verticalId, stage:p.status==='archived'?'fulfillment':p.status}; renderDrawer(); }));
+  body.querySelectorAll('[data-new-in],[data-create-in]').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.createIn){
+      const title=body.querySelector('#np-title')?.value||'', goal=body.querySelector('#np-goal')?.value||'';
+      if(!title.trim()){toast('Give the project a title.',true);return;}
+      tryRun(()=>{ const p=api.createProject({verticalId:b.dataset.createIn,title,goal}); drawerCtx={verticalId:p.verticalId,stage:'research'}; });
+      renderDrawer(); toast('Project created — record opened.');
+    } else { drawerCtx={verticalId:b.dataset.newIn, stage:'research'}; renderDrawer(); }
+  }));
+  const sw = body.querySelector('#proj-switch');
+  if(sw) sw.addEventListener('change',()=>{ const p=Repo.project(sw.value); drawerCtx.stage = drawerCtx.stage; renderDrawer(); /* focus follows first-in-stage; switching reorders */ 
+    // move chosen project to front of stage view by re-opening at its current stage
+    drawerCtx = {verticalId:p.verticalId, stage:drawerCtx.stage}; renderDrawer(); });
+  body.querySelectorAll('[data-add-research]').forEach(b=>b.addEventListener('click',()=>{
+    const kind=body.querySelector('#r-kind').value, title=body.querySelector('#r-title').value, note=body.querySelector('#r-note').value;
+    if(!title.trim()){toast('Title required.',true);return;}
+    tryRun(()=>api.addResearch(b.dataset.addResearch,{kind,title,note})); renderDrawer(); toast('Archived to the record.');
+  }));
+  body.querySelectorAll('[data-share]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.shareResearch(b.dataset.share)); renderDrawer(); toast('Shared.'); }));
+  body.querySelectorAll('[data-save-packet]').forEach(b=>b.addEventListener('click',()=>{
+    const spec={summary:body.querySelector('#s-summary').value, widthIn:body.querySelector('#s-w').value, heightIn:body.querySelector('#s-h').value, depthIn:body.querySelector('#s-d').value, material:body.querySelector('#s-mat').value, capture:body.querySelector('#s-cap').value};
+    tryRun(()=>{ const k=api.savePacket(b.dataset.savePacket, spec); toast(k.validation.ok?`Packet v${k.version} validated.`:`Packet v${k.version} refused — see gate.`, !k.validation.ok); });
+    renderDrawer();
+  }));
+  body.querySelectorAll('[data-request-quotes]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.requestQuotes(b.dataset.requestQuotes)); renderDrawer(); }));
+  body.querySelectorAll('[data-accept]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.acceptQuote(b.dataset.accept)); renderDrawer(); toast('Quote accepted.'); }));
+  body.querySelectorAll('[data-place-order]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.placeOrder(b.dataset.placeOrder)); renderDrawer(); toast('Order placed — escrow held.'); }));
+  body.querySelectorAll('[data-dispatch]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.dispatch(b.dataset.dispatch)); renderDrawer(); toast('Packet dispatched.'); }));
+  body.querySelectorAll('[data-advance-ms]').forEach(b=>b.addEventListener('click',()=>{ tryRun(()=>api.advanceMilestone(b.dataset.advanceMs)); renderDrawer(); }));
+  body.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{
+    const w=+body.querySelector('#c-warranty').value||0, n=body.querySelector('#c-note').value;
+    tryRun(()=>api.closeProject(b.dataset.close,{warrantyYears:w,serviceNote:n})); renderDrawer(); toast('Outcome preserved — escrow released.');
+  }));
+  body.querySelectorAll('[data-advance]').forEach(b=>b.addEventListener('click',()=>{
+    tryRun(()=>{ const p=api.advanceStage(b.dataset.advance); drawerCtx={verticalId:p.verticalId, stage:p.status}; });
+    renderDrawer();
+  }));
+}
+
+/* ---------------- header actions ---------------- */
+document.getElementById('btn-export').addEventListener('click',()=>{
+  const blob=new Blob([api.exportRecord()],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='homeowner-record-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  URL.revokeObjectURL(a.href); toast('Record exported — you hold the file.');
+});
+document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('file-import').click());
+document.getElementById('file-import').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>tryRun(()=>{ api.importRecord(rd.result); toast('Record imported.'); });
+  rd.readAsText(f); e.target.value='';
+});
+document.getElementById('btn-reset').addEventListener('click',()=>{ seed(); renderAll(); toast('Demonstration data reseeded.'); });
+document.getElementById('btn-new-project').addEventListener('click',()=>openCell('doors','research'));
+
+/* ---------------- boot ---------------- */
+function renderAll(){ renderMatrix(); renderRail(); if(drawerCtx) renderDrawer(); }
+seed();
+renderAll();
+</script>
+</body>
+</html>
