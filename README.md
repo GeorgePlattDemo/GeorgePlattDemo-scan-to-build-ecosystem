@@ -38,9 +38,9 @@ docs/MATERIAL_AND_LABOR_ONTOLOGY.md — shared vocabulary for materials, labor t
 
 docs/WORKPACKET_EXAMPLES.md — annotated woodwork and windows WorkPacket examples with machine-readable JSON included.
 
-briefs/GTCC_WORKFORCE_ORIENTATION.pdf — workforce-orientation brief for advanced manufacturing and technical education review.
+docs/GTCC_WORKFORCE_ORIENTATION.pdf — workforce-orientation brief for advanced manufacturing and technical education review.
 
-briefs/README.md — posture note for the workforce brief.
+README.md — posture note for the workforce brief.
 
 WHAT THE PACKAGE SHOWS
 
