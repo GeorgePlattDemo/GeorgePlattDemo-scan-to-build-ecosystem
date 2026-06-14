@@ -119,9 +119,8 @@ What is demonstrated, and what remains conceptual?
 How could bounded fabrication cells support workforce training?
 What would an institutional pilot need to test?
 Which parts are user experience, which parts are architecture, and which parts would require separate implementation work?
-Review Boundaries
 
-This repository is intentionally public-facing.
+Review Boundaries: This repository is intentionally public-facing.
 
 It avoids confidential implementation details, machine-control code, private partner terms, production claims, and non-public transfer materials.
 
