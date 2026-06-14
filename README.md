@@ -28,7 +28,7 @@ Start Here
 New to this project? Start with the human experience first.
 
 File	Purpose
-docs/FROM_IDEA_TO_INSTALLED_OBJECT.pdf	From Idea to Installed Object: One Continuous Experience. Sarah’s alcove, start to finish — the human-readable walkthrough behind the architecture. Everything below builds the system behind that experience.
+docs/FROM_IDEA_TO_INSTALLED_OBJECT (1).pdf	From Idea to Installed Object: One Continuous Experience. Sarah’s alcove, start to finish — the human-readable walkthrough behind the architecture. Everything below builds the system behind that experience.
 
 index.html	Public Scan-to-Build ecosystem demonstration.
 
